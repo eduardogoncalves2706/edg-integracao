@@ -1,0 +1,12 @@
+{
+  "ambiente": "homologacao",
+  "base_url": "https://hml-api-novoapisullog.apisul.com.br",
+  "auth_token_path": "/v1/Auth/Token",
+  "usuario": "SEU_USUARIO_INTEGRACAO_AQUI",
+  "senha": null,
+  "senha_env": "APISUL_INTEGRACAO_SENHA",
+  "token_ttl_minutos": 15,
+  "servicos_soap": {
+    "ponto_geografico": "/ApisulLog.Integracao.PontoGeografico.svc"
+  }
+}

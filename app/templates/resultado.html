@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Resultado do envio{% endblock %}
+{% block conteudo %}
+<a class="voltar" href="{{ url_for('ponto_geografico.index') }}">&larr; Enviar outra planilha</a>
+<h1>Resultado do lote #{{ lote.id }}</h1>
+<p class="resumo-lote">
+  Arquivo <strong>{{ lote.nome_arquivo }}</strong> —
+  {{ lote.total_linhas }} linha(s),
+  <span class="ok">{{ lote.linhas_sucesso }} com sucesso</span>,
+  <span class="erro">{{ lote.linhas_erro }} com erro</span>.
+</p>
+
+<table class="tabela-resultado">
+  <thead>
+    <tr>
+      <th>Linha</th>
+      <th>Identificador</th>
+      <th>Status</th>
+      <th>Mensagem</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in resultados %}
+    <tr class="{{ 'linha-ok' if item.sucesso else 'linha-erro' }}">
+      <td>{{ item.linha }}</td>
+      <td>{{ item.identificador }}</td>
+      <td>{{ "Sucesso" if item.sucesso else "Erro" }}</td>
+      <td>{{ item.mensagem }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

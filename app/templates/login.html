@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}Login - Integração ApisulLog{% endblock %}
+{% block conteudo %}
+<div class="caixa-login">
+  <h1>Integração ApisulLog</h1>
+  <p class="subtitulo">Entre com seu usuário para acessar os cadastros.</p>
+  <form method="post">
+    <label for="login">Usuário</label>
+    <input type="text" id="login" name="login" autofocus required>
+
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" name="senha" required>
+
+    <button type="submit">Entrar</button>
+  </form>
+</div>
+{% endblock %}

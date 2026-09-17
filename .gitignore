@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+config/db_config.json
+config/apisul_config.json
+.venv/
+*.xlsx
+!docs/**/*.xlsx

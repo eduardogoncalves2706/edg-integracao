@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Integração ApisulLog{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% if current_user.is_authenticated %}
+  <header class="topbar">
+    <a class="marca" href="{{ url_for('dashboard.selecionar_cadastro') }}">Integração ApisulLog</a>
+    <nav>
+      <span class="usuario-logado">{{ current_user.nome }}</span>
+      <a href="{{ url_for('auth.logout') }}">Sair</a>
+    </nav>
+  </header>
+  {% endif %}
+
+  <main class="conteudo">
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% if mensagens %}
+        <div class="flashes">
+          {% for categoria, mensagem in mensagens %}
+            <div class="flash flash-{{ categoria }}">{{ mensagem }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block conteudo %}{% endblock %}
+  </main>
+</body>
+</html>

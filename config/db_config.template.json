@@ -1,0 +1,9 @@
+{
+  "host": "SEU_HOST_AQUI",
+  "port": 5432,
+  "dbname": "integracao_apisullog",
+  "user": "SEU_USUARIO_AQUI",
+  "password": null,
+  "password_env": "INTEGRACAO_DB_PASSWORD",
+  "sslmode": null
+}
