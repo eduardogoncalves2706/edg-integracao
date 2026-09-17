@@ -69,10 +69,18 @@ class DbConfig:
 
 @dataclass
 class ApisulConfig:
+    """Configuração de conexão com a API Apisul (URLs dos serviços SOAP).
+
+    O token de integração é digitado pelo usuário na tela a cada envio (ver
+    app/routes/ponto_geografico.py) — não é lido daqui. `usuario`/`senha`
+    ficam disponíveis apenas para um eventual modo automático futuro
+    (app/services/auth_token_client.py), hoje não usado no fluxo principal.
+    """
+
     ambiente: str
     base_url: str
     auth_token_path: str
-    usuario: str
+    usuario: str | None
     senha: str | None
     token_ttl_minutos: int
     servicos_soap: dict
@@ -92,7 +100,7 @@ class ApisulConfig:
             ambiente=cfg.get("ambiente", "homologacao"),
             base_url=cfg["base_url"].rstrip("/"),
             auth_token_path=cfg.get("auth_token_path", "/v1/Auth/Token"),
-            usuario=cfg["usuario"],
+            usuario=cfg.get("usuario"),
             senha=_resolve_password(cfg, "senha", "senha_env"),
             token_ttl_minutos=cfg.get("token_ttl_minutos", 15),
             servicos_soap=cfg.get("servicos_soap", {}),

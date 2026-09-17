@@ -33,6 +33,16 @@ def baixar_modelo():
 @bp.route("/enviar", methods=["POST"])
 @login_required
 def enviar():
+    token_texto = request.form.get("token", "").strip()
+    if not token_texto:
+        flash("Informe o token de integração da Apisul.", "warning")
+        return redirect(url_for("ponto_geografico.index"))
+    try:
+        token = int(token_texto)
+    except ValueError:
+        flash("Token inválido: deve ser um número inteiro.", "danger")
+        return redirect(url_for("ponto_geografico.index"))
+
     arquivo = request.files.get("planilha")
     if not arquivo or not arquivo.filename:
         flash("Selecione um arquivo .xlsx preenchido a partir do modelo.", "warning")
@@ -86,7 +96,7 @@ def enviar():
             continue
 
         payload = excel_service.montar_payload_soap(linha.dados)
-        resultado = inserir_ponto_geografico(cfg, payload)
+        resultado = inserir_ponto_geografico(cfg, token, payload)
 
         if resultado.sucesso:
             lote.linhas_sucesso += 1

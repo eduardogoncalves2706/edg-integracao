@@ -1,5 +1,9 @@
-"""Orquestra o cadastro de Ponto Geográfico: pega token, chama o SOAP,
-normaliza o retorno para gravar em ChamadaApi."""
+"""Orquestra o cadastro de Ponto Geográfico: chama o SOAP com o token
+informado pelo usuário e normaliza o retorno para gravar em ChamadaApi.
+
+O token é digitado na tela (ver app/routes/ponto_geografico.py) em vez de
+vir de uma credencial fixa em config/apisul_config.json — assim dá pra testar
+com qualquer token de integração sem reconfigurar o app."""
 from __future__ import annotations
 
 import time
@@ -7,7 +11,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from config.settings import ApisulConfig
-from app.services.auth_token_client import obter_token
 from app.services.soap_client import chamar_operacao
 
 SERVICO = "ponto_geografico"
@@ -23,10 +26,9 @@ class ResultadoChamada:
     duracao_ms: int
 
 
-def inserir_ponto_geografico(cfg: ApisulConfig, payload: dict[str, Any]) -> ResultadoChamada:
+def inserir_ponto_geografico(cfg: ApisulConfig, token: int, payload: dict[str, Any]) -> ResultadoChamada:
     inicio = time.monotonic()
     try:
-        token = obter_token(cfg)
         resposta = chamar_operacao(
             cfg, SERVICO, OPERACAO_INSERE,
             token=token,

@@ -104,7 +104,15 @@ button:hover, .botao:hover { background: var(--azul-escuro); }
 
 .passos { padding-left: 1.2rem; }
 .passos li { margin-bottom: 1.5rem; }
-.form-upload { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; }
+.form-upload { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 0.5rem; }
+.form-upload input[type="text"] {
+  padding: 0.5rem;
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+  font-size: 1rem;
+  min-width: 220px;
+}
+.ajuda-campo { color: #6c757d; font-size: 0.85rem; max-width: 480px; }
 
 .resumo-lote { color: #495057; }
 .resumo-lote .ok { color: var(--verde); font-weight: 600; }

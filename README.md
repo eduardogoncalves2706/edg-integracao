@@ -5,8 +5,14 @@ da ApisulLog a partir de planilhas Excel. V1 cobre **Ponto Geográfico**; o
 mapeamento completo da API está em [`docs/API_MAPEAMENTO.md`](docs/API_MAPEAMENTO.md).
 
 Fluxo: login → selecionar tipo de cadastro → baixar modelo de Excel →
-preencher → enviar → o app valida cada linha, chama a API (SOAP) e grava o
-payload enviado + a resposta de cada chamada no Postgres.
+preencher → informar o **token de integração** (gerado pela Apisul,
+`POST /v1/Auth/Token`) → enviar → o app valida cada linha, chama a API (SOAP)
+usando esse token e grava o payload enviado + a resposta de cada chamada no
+Postgres.
+
+O token é digitado na própria tela a cada envio (não fica salvo em
+configuração nem no banco) — isso deixa o app "plugável" em qualquer token
+válido para testar, sem precisar reconfigurar nada.
 
 ## Setup
 
@@ -27,15 +33,16 @@ payload enviado + a resposta de cada chamada no Postgres.
    # preencha INTEGRACAO_DB_PASSWORD no .env
    ```
 
-3. **Credenciais de integração ApisulLog** (a conta de serviço usada para
-   chamar a API, não confundir com o login do usuário do app):
+3. **URL da API Apisul** (só a URL do ambiente — o token de cada chamada é
+   digitado na tela, não fica configurado aqui):
    ```bash
    cp config/apisul_config.template.json config/apisul_config.json
-   # edite "usuario"; a senha vai em APISUL_INTEGRACAO_SENHA no .env
    ```
    O `base_url` já vem apontando para homologação
    (`hml-api-novoapisullog.apisul.com.br`); trocar para produção quando for
-   a hora.
+   a hora. Os campos `usuario`/`senha` do arquivo só importam se um dia
+   ligarmos a geração automática de token (`app/services/auth_token_client.py`,
+   hoje não usada no fluxo principal).
 
 4. **Criar as tabelas e o primeiro usuário do app**
    ```bash
@@ -57,7 +64,7 @@ app/
   models.py               Usuario, LoteImportacao, ChamadaApi (SQLAlchemy)
   routes/                 auth (login), dashboard (seleção), ponto_geografico
   services/
-    auth_token_client.py  POST /v1/Auth/Token -> token de integração (cacheado)
+    auth_token_client.py  POST /v1/Auth/Token -> token (não usado no fluxo atual, ver Pendências)
     soap_client.py        cliente zeep genérico p/ qualquer *.svc da Apisul
     ponto_geografico_service.py   chama InserePontoGeografico e interpreta o retorno
     excel_ponto_geografico.py     gera o modelo .xlsx e valida a planilha enviada
@@ -88,10 +95,12 @@ SMP) — mesmo padrão do PontoGeografico. Passos para replicar:
 
 ## Pendências para validar contra a API real
 
-- Formato exato da resposta de `POST /v1/Auth/Token` (o swagger não
-  documenta o schema — só foi possível confirmar `{Usuario, Senha}` na
-  entrada). `auth_token_client._extrair_token` cobre os formatos mais
-  comuns; ajustar no primeiro teste com credenciais de homologação.
+- V1 usa **token manual**: o usuário cola na tela um token já gerado (por
+  exemplo via Postman, chamando `POST /v1/Auth/Token` com Usuario/Senha).
+  `app/services/auth_token_client.py` já implementa essa chamada e um cache
+  de token, para quando quisermos automatizar isso dentro do próprio app —
+  falta então plugá-lo na rota e decidir onde guardar a credencial de
+  serviço com segurança (Secrets Manager, por exemplo).
 - No XSD do WSDL todo campo de `PontoGeograficoModeloIntegracao` é opcional
   (`minOccurs="0"`) — a coluna "obrigatório" do Excel em
   `excel_ponto_geografico.py` é uma inferência de negócio. Ajustar assim que
