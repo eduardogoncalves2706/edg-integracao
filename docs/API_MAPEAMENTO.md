@@ -187,6 +187,29 @@ Pendência: confirmar com a Apisul se essa conta de teste tem algum
 isolamento (sandbox dentro de produção) ou se os pontos cadastrados entram
 nos dados reais/operacionais da empresa.
 
+## Lat/Long vs endereço: quem ganha (testado em 2026-09-18)
+
+Enviamos um ponto com endereço de Porto Alegre/RS **e** coordenadas de São
+Paulo/SP (bem diferentes de propósito) na mesma chamada. Resultado:
+**as coordenadas ganham** — a API ignorou completamente o endereço texto
+enviado e reverse-geocodificou a partir do Lat/Long, devolvendo "Praça da
+Sé, 347, SÃO PAULO SP" (aproveitou o Número enviado, mas trocou rua/cidade/
+UF pelo que corresponde às coordenadas). Ou seja: se as duas informações
+forem enviadas e não baterem, o endereço nunca é usado — só serve como
+fallback de fato quando Lat/Long ficam em branco.
+
+## Suporte à planilha oficial de coleta (não só o modelo do app)
+
+`ler_planilha` agora aceita dois formatos, testado com o arquivo real:
+
+1. O modelo gerado pelo próprio app (aba "PontoGeografico", cabeçalho na
+   linha 1).
+2. A planilha oficial de coleta da Apisul, sem nenhuma adaptação — aba
+   "Pontos", cabeçalho fixo na linha 6, dados a partir da linha 7, coluna A
+   ignorada (é só numeração sequencial). Testado com o arquivo real do
+   projeto: reconheceu as 3 linhas preenchidas (Matriz, Filial SPO, Filial
+   BLM), ignorou a linha "Exemplo" e todas as linhas vazias até a 507.
+
 ## Arquivo bruto
 - `PontoGeografico.wsdl` — WSDL completo baixado (`?singleWsdl`)
 - `swagger_v2_apisullog.json` — spec REST completo (`swagger/docs/v2`)

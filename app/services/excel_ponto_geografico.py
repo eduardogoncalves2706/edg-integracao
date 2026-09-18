@@ -246,16 +246,36 @@ def _validar_regra_endereco_ou_coordenada(dados: dict[str, Any], erros: list[str
 
 COLUNAS_POR_CAMPO = {c.campo: c for c in COLUNAS}
 
+# --- suporte à planilha oficial de coleta da Apisul (RQ IMP 002, aba "Pontos") ---
+# Mesmo arquivo que serviu de referência pro modelo acima — dá pra enviar
+# direto, sem reformatar pro nosso modelo. Layout fixo observado no arquivo:
+# cabeçalho na linha 6, dados a partir da linha 7, coluna A é só um número
+# sequencial (ignorada), coluna B em diante segue esta ordem:
+NOME_ABA_PONTOS_OFICIAL = "Pontos"
+LINHA_CABECALHO_PONTOS_OFICIAL = 6
+MARCADOR_LINHA_EXEMPLO_PONTOS_OFICIAL = "exemplo"
+CAMPOS_PONTOS_OFICIAL = [
+    "Identificador", "TipoPonto", "Endereco", "Numero", "Bairro", "CEP",
+    "Cidade", "UF", "Pais", "CNPJ", "Telefone", "Latitude", "Longitude",
+]
+
 
 def ler_planilha(arquivo) -> list[LinhaValidada]:
-    """Lê um arquivo .xlsx (file-like) e devolve uma linha validada por registro."""
+    """Lê um arquivo .xlsx (file-like) e devolve uma linha validada por
+    registro. Aceita tanto o modelo baixado do app (aba 'PontoGeografico')
+    quanto a planilha oficial de coleta da Apisul (aba 'Pontos')."""
     wb = load_workbook(arquivo, data_only=True)
-    if NOME_ABA_DADOS not in wb.sheetnames:
-        raise ValueError(
-            f"A planilha enviada não tem a aba '{NOME_ABA_DADOS}'. Baixe o modelo atualizado."
-        )
-    aba = wb[NOME_ABA_DADOS]
+    if NOME_ABA_DADOS in wb.sheetnames:
+        return _ler_aba_modelo_app(wb[NOME_ABA_DADOS])
+    if NOME_ABA_PONTOS_OFICIAL in wb.sheetnames:
+        return _ler_aba_coleta_oficial(wb[NOME_ABA_PONTOS_OFICIAL])
+    raise ValueError(
+        f"A planilha enviada não tem nem a aba '{NOME_ABA_DADOS}' (modelo do app) "
+        f"nem '{NOME_ABA_PONTOS_OFICIAL}' (planilha oficial de coleta RQ IMP 002)."
+    )
 
+
+def _ler_aba_modelo_app(aba) -> list[LinhaValidada]:
     linhas: list[LinhaValidada] = []
     for numero_linha, linha_valores in enumerate(
         aba.iter_rows(min_row=2, values_only=True), start=2
@@ -269,6 +289,32 @@ def ler_planilha(arquivo) -> list[LinhaValidada]:
         for idx, coluna in enumerate(COLUNAS):
             valor_bruto = linha_valores[idx] if idx < len(linha_valores) else None
             lv.dados[coluna.campo] = _converter(valor_bruto, coluna, lv.erros)
+
+        _validar_regra_endereco_ou_coordenada(lv.dados, lv.erros)
+        linhas.append(lv)
+
+    return linhas
+
+
+def _ler_aba_coleta_oficial(aba) -> list[LinhaValidada]:
+    linhas: list[LinhaValidada] = []
+    for numero_linha, linha_valores in enumerate(
+        aba.iter_rows(min_row=LINHA_CABECALHO_PONTOS_OFICIAL + 1, values_only=True),
+        start=LINHA_CABECALHO_PONTOS_OFICIAL + 1,
+    ):
+        valores_sem_indice = linha_valores[1:] if linha_valores else ()
+        if not any(valores_sem_indice):
+            continue
+        if str(linha_valores[0] or "").strip().lower() == MARCADOR_LINHA_EXEMPLO_PONTOS_OFICIAL:
+            continue
+
+        lv = LinhaValidada(numero_linha=numero_linha)
+        for idx, campo in enumerate(CAMPOS_PONTOS_OFICIAL):
+            coluna = COLUNAS_POR_CAMPO[campo]
+            valor_bruto = valores_sem_indice[idx] if idx < len(valores_sem_indice) else None
+            lv.dados[campo] = _converter(valor_bruto, coluna, lv.erros)
+        # Raio não existe na planilha oficial de coleta — API usa 500m padrão.
+        lv.dados["Raio"] = None
 
         _validar_regra_endereco_ou_coordenada(lv.dados, lv.erros)
         linhas.append(lv)
