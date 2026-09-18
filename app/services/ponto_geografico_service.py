@@ -16,6 +16,11 @@ from app.services.soap_client import chamar_operacao
 SERVICO = "ponto_geografico"
 OPERACAO_INSERE = "InserePontoGeografico"
 
+# Código de erro da Apisul pra token expirado/inválido (confirmado em teste
+# real em 2026-09-18: mesmo token que funcionou minutos antes passou a
+# devolver isso). Ajuda no diagnóstico exibindo uma dica mais clara.
+CODIGO_ERRO_TOKEN_INVALIDO = 1002
+
 
 @dataclass
 class ResultadoChamada:
@@ -54,6 +59,8 @@ def inserir_ponto_geografico(cfg: ApisulConfig, token: int, payload: dict[str, A
             mensagem_erro = "; ".join(
                 f"[{m.get('Codigo')}] {m.get('Mensagem')}" for m in lista_erros
             )
+            if any(m.get("Codigo") == CODIGO_ERRO_TOKEN_INVALIDO for m in lista_erros):
+                mensagem_erro += " — gere um token novo (o anterior expirou ou já foi usado) e envie de novo."
         else:
             mensagem_erro = "API retornou TransacaoOk=false sem detalhar o motivo."
 
