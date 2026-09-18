@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block titulo %}Resultados{% endblock %}
+{% block topo_titulo %}Resultados{% endblock %}
+{% block topo_crumb %}Todas as chamadas de integração{% endblock %}
+{% block conteudo %}
+<div class="view-header">
+  <div>
+    <div class="view-title">Resultados da integração</div>
+    <div class="view-subtitle">Cada linha da planilha vira uma chamada à API — veja a requisição enviada e a resposta recebida.</div>
+  </div>
+</div>
+
+<div class="card">
+  <form class="toolbar" method="get">
+    <input type="text" name="busca" placeholder="Buscar por identificador…" value="{{ filtros.busca or '' }}">
+    <select name="status" onchange="this.form.submit()">
+      <option value="">Status: todos</option>
+      <option value="sucesso" {{ "selected" if filtros.status == "sucesso" }}>Sucesso</option>
+      <option value="erro" {{ "selected" if filtros.status == "erro" }}>Erro</option>
+      <option value="pendente" {{ "selected" if filtros.status == "pendente" }}>Na fila</option>
+    </select>
+    <select name="tipo_cadastro" onchange="this.form.submit()">
+      <option value="">Cadastro: todos</option>
+      {% for tipo in tipos_disponiveis %}
+        <option value="{{ tipo }}" {{ "selected" if filtros.tipo_cadastro == tipo }}>{{ tipo }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+  </form>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Linha</th>
+          <th>Identificador</th>
+          <th>Cadastro</th>
+          <th>Status</th>
+          <th>Duração</th>
+          <th>Quando</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-resultados">
+        {% for c in chamadas %}
+        <tr>
+          <td class="tabular">{{ c.linha_excel or "-" }}</td>
+          <td>{{ c.identificador_registro or "-" }}</td>
+          <td class="cell-muted">{{ c.tipo_cadastro }}</td>
+          <td>
+            {% if c.status == "sucesso" %}<span class="badge badge-good">Sucesso</span>
+            {% elif c.status == "erro" %}<span class="badge badge-critical">Erro</span>
+            {% else %}<span class="badge badge-info"><span class="spinner"></span>Na fila</span>{% endif %}
+          </td>
+          <td class="cell-mono">{{ (c.duracao_ms ~ "ms") if c.duracao_ms else "-" }}</td>
+          <td class="cell-mono">{{ c.criado_em.strftime("%d/%m %H:%M") }}</td>
+          <td><button class="btn btn-ghost btn-sm" data-abrir-drawer="{{ c.id }}">Ver detalhes</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">
+          <div class="state-block">
+            <div class="state-title">Nenhum resultado ainda</div>
+            <div class="state-desc">Envie uma planilha para ver aqui a chamada e o retorno de cada linha.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if paginacao.pages > 1 %}
+  <div class="pager">
+    <span>Página {{ paginacao.page }} de {{ paginacao.pages }}</span>
+    {% if paginacao.has_prev %}<a href="?pagina={{ paginacao.prev_num }}">&larr; Anterior</a>{% endif %}
+    {% if paginacao.has_next %}<a href="?pagina={{ paginacao.next_num }}">Próxima &rarr;</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-eyebrow" id="drawer-eyebrow">-</div>
+      <div class="drawer-title" id="drawer-title">-</div>
+    </div>
+    <button class="drawer-close" id="drawer-close">&times;</button>
+  </div>
+  <div class="drawer-summary">
+    <div class="summary-item"><div class="k">Status</div><div class="v" id="drawer-status">-</div></div>
+    <div class="summary-item"><div class="k">Duração</div><div class="v tabular" id="drawer-duracao">-</div></div>
+    <div class="summary-item"><div class="k">Planilha</div><div class="v" id="drawer-planilha">-</div></div>
+    <div class="summary-item"><div class="k">Usuário</div><div class="v" id="drawer-usuario">-</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="requisicao">Requisição</button>
+    <button class="tab-btn" data-tab="resposta">Resposta</button>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel active" data-tab-panel="requisicao">
+      <pre class="json-block" id="json-requisicao"></pre>
+    </div>
+    <div class="tab-panel" data-tab-panel="resposta">
+      <pre class="json-block" id="json-resposta"></pre>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function () {
+  var drawer = document.getElementById("drawer");
+  var overlay = document.getElementById("drawer-overlay");
+
+  function badgeHtml(status) {
+    if (status === "sucesso") return '<span class="badge badge-good">Sucesso</span>';
+    if (status === "erro") return '<span class="badge badge-critical">Erro</span>';
+    return '<span class="badge badge-info">Na fila</span>';
+  }
+
+  function abrir(id) {
+    fetch("/resultados/" + id + "/detalhe.json").then(function (r) { return r.json(); }).then(function (d) {
+      document.getElementById("drawer-eyebrow").textContent = "Linha " + (d.linha ?? "-") + " · " + d.operacao;
+      document.getElementById("drawer-title").textContent = d.identificador || ("Chamada #" + d.id);
+      document.getElementById("drawer-status").innerHTML = badgeHtml(d.status);
+      document.getElementById("drawer-duracao").textContent = d.duracao_ms ? (d.duracao_ms + "ms") : "-";
+      document.getElementById("drawer-planilha").textContent = d.planilha || "-";
+      document.getElementById("drawer-usuario").textContent = d.usuario || "-";
+      document.getElementById("json-requisicao").textContent = JSON.stringify(d.payload_enviado, null, 2);
+      document.getElementById("json-resposta").textContent = d.mensagem_erro
+        ? d.mensagem_erro + "\n\n" + JSON.stringify(d.resposta_recebida, null, 2)
+        : JSON.stringify(d.resposta_recebida, null, 2);
+      drawer.classList.add("open");
+      overlay.classList.add("open");
+    });
+  }
+
+  document.querySelectorAll("[data-abrir-drawer]").forEach(function (btn) {
+    btn.addEventListener("click", function () { abrir(btn.dataset.abrirDrawer); });
+  });
+  function fechar() { drawer.classList.remove("open"); overlay.classList.remove("open"); }
+  document.getElementById("drawer-close").addEventListener("click", fechar);
+  overlay.addEventListener("click", fechar);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") fechar(); });
+
+  document.querySelectorAll(".tab-btn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".tab-btn").forEach(function (x) { x.classList.toggle("active", x === b); });
+      document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.toggle("active", p.dataset.tabPanel === b.dataset.tab); });
+    });
+  });
+})();
+</script>
+{% endblock %}

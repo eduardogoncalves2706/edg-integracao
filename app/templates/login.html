@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block titulo %}Login - Integração ApisulLog{% endblock %}
-{% block conteudo %}
+{% block conteudo_publico %}
 <div class="caixa-login">
   <h1>Integração ApisulLog</h1>
   <p class="subtitulo">Entre com seu usuário para acessar os cadastros.</p>
@@ -11,7 +11,7 @@
     <label for="senha">Senha</label>
     <input type="password" id="senha" name="senha" required>
 
-    <button type="submit">Entrar</button>
+    <button class="btn btn-primary" type="submit" style="margin-top:14px;justify-content:center">Entrar</button>
   </form>
 </div>
 {% endblock %}

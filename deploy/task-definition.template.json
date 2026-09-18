@@ -1,0 +1,45 @@
+{
+  "family": "edg-integracao-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::255530396736:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::255530396736:role/edg-integracao-task-role",
+  "containerDefinitions": [
+    {
+      "name": "edg-integracao-api",
+      "image": "255530396736.dkr.ecr.us-east-1.amazonaws.com/edg-integracao-api:latest",
+      "essential": true,
+      "portMappings": [
+        {"containerPort": 8000, "hostPort": 8000, "protocol": "tcp"}
+      ],
+      "environment": [
+        {"name": "DB_HOST", "value": "__DB_HOST__"},
+        {"name": "DB_PORT", "value": "5432"},
+        {"name": "DB_NAME", "value": "integracao_apisullog"},
+        {"name": "DB_USER", "value": "postgres"},
+        {"name": "APISUL_BASE_URL", "value": "https://api-novoapisullog.apisul.com.br"},
+        {"name": "APISUL_AMBIENTE", "value": "producao"},
+        {"name": "AWS_REGION", "value": "us-east-1"},
+        {"name": "AWS_APP_SECURITY_GROUP_ID", "value": "sg-0c6cb27ec7a3a3e81"}
+      ],
+      "secrets": [
+        {"name": "DB_PASSWORD", "valueFrom": "arn:aws:secretsmanager:us-east-1:255530396736:secret:edg-integracao/app-GX1WCI:DB_PASSWORD::"},
+        {"name": "FLASK_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:255530396736:secret:edg-integracao/app-GX1WCI:FLASK_SECRET_KEY::"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/edg-integracao-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

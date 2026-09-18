@@ -20,11 +20,19 @@ def create_app() -> Flask:
 
     from app.routes.auth import bp as auth_bp
     from app.routes.dashboard import bp as dashboard_bp
+    from app.routes.historico import bp as historico_bp
+    from app.routes.lotes import bp as lotes_bp
     from app.routes.ponto_geografico import bp as ponto_geografico_bp
+    from app.routes.resultados import bp as resultados_bp
+    from app.routes.usuarios import bp as usuarios_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(historico_bp)
+    app.register_blueprint(lotes_bp)
     app.register_blueprint(ponto_geografico_bp)
+    app.register_blueprint(resultados_bp)
+    app.register_blueprint(usuarios_bp)
 
     from app.cli import registrar_comandos
 

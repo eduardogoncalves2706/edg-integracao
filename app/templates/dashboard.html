@@ -1,14 +1,21 @@
 {% extends "base.html" %}
-{% block titulo %}Selecionar cadastro{% endblock %}
+{% block titulo %}Enviar planilha{% endblock %}
+{% block topo_titulo %}Enviar planilha{% endblock %}
+{% block topo_crumb %}Selecione o tipo de cadastro{% endblock %}
 {% block conteudo %}
-<h1>Qual cadastro você quer realizar?</h1>
+<div class="view-header">
+  <div>
+    <div class="view-title">Qual cadastro você quer realizar?</div>
+    <div class="view-subtitle">Cada tipo tem seu próprio modelo de planilha.</div>
+  </div>
+</div>
 <div class="grade-cadastros">
   {% for cadastro in cadastros %}
     <div class="card-cadastro {{ 'desabilitado' if not cadastro.disponivel }}">
       <h2>{{ cadastro.titulo }}</h2>
       <p>{{ cadastro.descricao }}</p>
       {% if cadastro.disponivel %}
-        <a class="botao" href="{{ url_for(cadastro.url_endpoint) }}">Selecionar</a>
+        <a class="btn btn-primary btn-sm" href="{{ url_for(cadastro.url_endpoint) }}">Selecionar</a>
       {% else %}
         <span class="etiqueta">Em breve</span>
       {% endif %}

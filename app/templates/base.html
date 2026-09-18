@@ -7,28 +7,110 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  {% if current_user.is_authenticated %}
-  <header class="topbar">
-    <a class="marca" href="{{ url_for('dashboard.selecionar_cadastro') }}">Integração ApisulLog</a>
-    <nav>
-      <span class="usuario-logado">{{ current_user.nome }}</span>
-      <a href="{{ url_for('auth.logout') }}">Sair</a>
-    </nav>
-  </header>
-  {% endif %}
+{% if current_user.is_authenticated %}
+<div class="sidebar-scrim" onclick="document.body.classList.remove('sidebar-open')"></div>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">IA</div>
+      <div>
+        <div class="brand-name">Integração ApisulLog</div>
+        <div class="brand-sub">v1 &middot; Ponto Geográfico</div>
+      </div>
+    </div>
 
-  <main class="conteudo">
-    {% with mensagens = get_flashed_messages(with_categories=true) %}
-      {% if mensagens %}
-        <div class="flashes">
-          {% for categoria, mensagem in mensagens %}
-            <div class="flash flash-{{ categoria }}">{{ mensagem }}</div>
-          {% endfor %}
+    <div class="nav-group-label">Principal</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'dashboard.visao_geral' }}" href="{{ url_for('dashboard.visao_geral') }}">Visão geral</a></li>
+      <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'dashboard.selecionar_cadastro' or (request.endpoint and request.endpoint.startswith('ponto_geografico.')) }}" href="{{ url_for('dashboard.selecionar_cadastro') }}">Enviar planilha</a></li>
+      <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('resultados.') }}" href="{{ url_for('resultados.index') }}">Resultados</a></li>
+      <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('historico.') }}" href="{{ url_for('historico.index') }}">Histórico de envios</a></li>
+    </ul>
+
+    <div class="nav-group-label">Administração</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('usuarios.') }}" href="{{ url_for('usuarios.index') }}">Usuários</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <a class="user-chip" style="text-decoration:none" href="{{ url_for('usuarios.editar', usuario_id=current_user.id) }}">
+        <div class="avatar">{{ current_user.nome[:2].upper() }}</div>
+        <div class="user-meta">
+          <div class="user-name">{{ current_user.nome }}</div>
+          <div class="user-role">{{ 'Admin' if current_user.admin else 'Usuário' }}</div>
         </div>
-      {% endif %}
-    {% endwith %}
+      </a>
+      <button class="theme-toggle" id="theme-toggle">
+        <span id="theme-label">Modo escuro</span>
+      </button>
+      <div style="text-align:center;margin-top:8px">
+        <a class="logout" href="{{ url_for('auth.logout') }}">Sair</a>
+      </div>
+    </div>
+  </aside>
 
-    {% block conteudo %}{% endblock %}
-  </main>
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="document.body.classList.toggle('sidebar-open')">&#9776;</button>
+      <div>
+        <div class="page-title">{% block topo_titulo %}{% endblock %}</div>
+        <div class="page-crumb">{% block topo_crumb %}Integração ApisulLog{% endblock %}</div>
+      </div>
+      <div class="topbar-spacer"></div>
+    </header>
+
+    <div class="content">
+      {% with mensagens = get_flashed_messages(with_categories=true) %}
+        {% if mensagens %}
+          <div class="flashes">
+            {% for categoria, mensagem in mensagens %}
+              <div class="flash flash-{{ categoria }}">{{ mensagem }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block conteudo %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="content">
+  {% with mensagens = get_flashed_messages(with_categories=true) %}
+    {% if mensagens %}
+      <div class="flashes">
+        {% for categoria, mensagem in mensagens %}
+          <div class="flash flash-{{ categoria }}">{{ mensagem }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block conteudo_publico %}{% endblock %}
+</div>
+{% endif %}
+
+<script>
+(function () {
+  var chave = "edg-integracao-tema";
+  var atual = localStorage.getItem(chave) ||
+    (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+  function aplicar(tema) {
+    document.documentElement.setAttribute("data-theme", tema);
+    var label = document.getElementById("theme-label");
+    if (label) label.textContent = tema === "dark" ? "Modo claro" : "Modo escuro";
+  }
+  aplicar(atual);
+
+  var botao = document.getElementById("theme-toggle");
+  if (botao) {
+    botao.addEventListener("click", function () {
+      atual = atual === "dark" ? "light" : "dark";
+      localStorage.setItem(chave, atual);
+      aplicar(atual);
+    });
+  }
+})();
+</script>
+{% block script %}{% endblock %}
 </body>
 </html>

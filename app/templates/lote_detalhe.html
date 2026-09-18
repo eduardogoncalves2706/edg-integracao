@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block titulo %}Lote #{{ lote.id }}{% endblock %}
+{% block topo_titulo %}Lote #{{ lote.id }}{% endblock %}
+{% block topo_crumb %}Histórico de envios / Lote #{{ lote.id }}{% endblock %}
+{% block conteudo %}
+<a class="voltar" href="{{ url_for('historico.index') }}">&larr; Histórico de envios</a>
+
+<div class="view-header">
+  <div>
+    <div class="view-title">Arquivo {{ lote.nome_arquivo }}</div>
+    <div class="view-subtitle" id="resumo-lote">{{ lote.total_linhas }} linha(s)</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:14px" id="card-progresso">
+  <div class="card-pad">
+    <div class="progress-track"><div class="progress-fill" id="barra-progresso" style="width:0%"></div></div>
+    <div class="ajuda-campo" id="texto-progresso" style="margin-top:8px">Carregando status…</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Linha</th>
+          <th>Identificador</th>
+          <th>Status</th>
+          <th>Duração</th>
+          <th>Mensagem</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-linhas">
+        <tr><td colspan="5" class="cell-muted">Carregando…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function () {
+  var loteId = {{ lote.id }};
+  var urlStatus = "{{ url_for('lotes.status_json', lote_id=lote.id) }}";
+  var intervalo = null;
+
+  function badge(status) {
+    if (status === "sucesso") return '<span class="badge badge-good">Sucesso</span>';
+    if (status === "erro") return '<span class="badge badge-critical">Erro</span>';
+    if (status === "pendente") return '<span class="badge badge-info"><span class="spinner"></span>Na fila</span>';
+    return '<span class="badge badge-neutral">' + status + '</span>';
+  }
+
+  function render(dados) {
+    var processadas = dados.linhas_sucesso + dados.linhas_erro;
+    var pct = dados.total_linhas ? Math.round((processadas / dados.total_linhas) * 100) : 100;
+
+    document.getElementById("resumo-lote").textContent =
+      dados.total_linhas + " linha(s) — " + dados.linhas_sucesso + " com sucesso, " +
+      dados.linhas_erro + " com erro" + (dados.linhas_pendentes ? ", " + dados.linhas_pendentes + " na fila" : "") + ".";
+
+    var barra = document.getElementById("barra-progresso");
+    barra.style.width = pct + "%";
+    barra.classList.toggle("done", dados.status === "concluido");
+
+    var textoProgresso = document.getElementById("texto-progresso");
+    if (dados.status === "concluido") {
+      textoProgresso.textContent = "Processamento concluído.";
+      if (intervalo) { clearInterval(intervalo); intervalo = null; }
+    } else {
+      textoProgresso.textContent = "Processando… " + processadas + " de " + dados.total_linhas + " linha(s). " +
+        "Cada chamada real leva de 20 a 40 segundos, isso pode demorar alguns minutos.";
+    }
+
+    var tbody = document.getElementById("tbody-linhas");
+    tbody.innerHTML = dados.chamadas.map(function (c) {
+      return "<tr>" +
+        "<td class='tabular'>" + (c.linha ?? "-") + "</td>" +
+        "<td>" + c.identificador + "</td>" +
+        "<td>" + badge(c.status) + "</td>" +
+        "<td class='cell-mono'>" + (c.duracao_ms ? (c.duracao_ms + "ms") : "-") + "</td>" +
+        "<td class='cell-muted'>" + (c.mensagem || (c.status === "sucesso" ? "Cadastrado com sucesso." : "-")) + "</td>" +
+        "</tr>";
+    }).join("");
+  }
+
+  function atualizar() {
+    fetch(urlStatus).then(function (r) { return r.json(); }).then(function (dados) {
+      render(dados);
+      if (dados.status === "concluido" && intervalo) { clearInterval(intervalo); intervalo = null; }
+    });
+  }
+
+  atualizar();
+  intervalo = setInterval(atualizar, 3000);
+})();
+</script>
+{% endblock %}

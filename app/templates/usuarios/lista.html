@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Usuários{% endblock %}
+{% block topo_titulo %}Usuários{% endblock %}
+{% block topo_crumb %}Controle de acesso ao app{% endblock %}
+{% block conteudo %}
+<div class="view-header">
+  <div>
+    <div class="view-title">Usuários</div>
+    <div class="view-subtitle">Quem pode acessar o app e de qual IP.</div>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('usuarios.novo') }}">Novo usuário</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Status</th><th>IP liberado</th><th>Último login</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td>{{ u.nome }}</td>
+          <td class="cell-mono">{{ u.login }}</td>
+          <td>{% if u.admin %}<span class="badge badge-info">Admin</span>{% else %}<span class="badge badge-neutral">Usuário</span>{% endif %}</td>
+          <td>{% if u.ativo %}<span class="badge badge-good">Ativo</span>{% else %}<span class="badge badge-critical">Inativo</span>{% endif %}</td>
+          <td class="cell-mono">{{ u.ip_registrado or "-" }}</td>
+          <td class="cell-muted">{{ u.ultimo_login_em.strftime("%d/%m/%Y %H:%M") if u.ultimo_login_em else "nunca" }}</td>
+          <td><a class="btn btn-secondary btn-sm" href="{{ url_for('usuarios.editar', usuario_id=u.id) }}">Editar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

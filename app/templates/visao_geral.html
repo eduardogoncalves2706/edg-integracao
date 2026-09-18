@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block titulo %}Visão geral{% endblock %}
+{% block topo_titulo %}Visão geral{% endblock %}
+{% block topo_crumb %}Integração ApisulLog{% endblock %}
+{% block conteudo %}
+<div class="view-header">
+  <div>
+    <div class="view-title">Visão geral</div>
+    <div class="view-subtitle">Volume e saúde das integrações neste mês.</div>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="card stat-tile">
+    <div class="stat-label">Linhas processadas (mês)</div>
+    <div class="stat-value tabular">{{ total_mes }}</div>
+    {% if variacao_total is not none %}
+      <div class="stat-trend {{ 'trend-up' if variacao_total >= 0 else 'trend-down' }}">{{ "%+.0f"|format(variacao_total) }}% vs. mês anterior</div>
+    {% endif %}
+  </div>
+  <div class="card stat-tile">
+    <div class="stat-label">Taxa de sucesso</div>
+    <div class="stat-value tabular">{{ "%.1f"|format(taxa_sucesso) ~ "%" if taxa_sucesso is not none else "-" }}</div>
+  </div>
+  <div class="card stat-tile">
+    <div class="stat-label">Erros no período</div>
+    <div class="stat-value tabular">{{ erro_mes }}</div>
+    {% if variacao_erro is not none %}
+      <div class="stat-trend {{ 'trend-down' if variacao_erro <= 0 else 'trend-up' }}">{{ "%+.0f"|format(variacao_erro) }}% vs. mês anterior</div>
+    {% endif %}
+  </div>
+  <div class="card stat-tile">
+    <div class="stat-label">Tempo médio por chamada</div>
+    <div class="stat-value tabular">{{ (duracao_media / 1000)|round(1) ~ "s" if duracao_media else "-" }}</div>
+  </div>
+</div>
+
+<div class="dash-row">
+  <div class="card card-pad">
+    <div style="font-size:13.5px;font-weight:700">Linhas processadas por dia</div>
+    <div class="ajuda-campo" style="margin:0 0 4px">Últimos 7 dias</div>
+    <div class="bar-chart">
+      {% set maximo = (dias|map(attribute="valor")|max) or 1 %}
+      {% for dia in dias %}
+        <div class="bar-col">
+          <div class="bar-fill" style="height:{{ (dia.valor / maximo * 100)|round(0)|int if maximo else 0 }}%"></div>
+          <span class="bar-label">{{ dia.label }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card card-pad">
+    <div style="font-size:13.5px;font-weight:700">Status das linhas (mês)</div>
+    <div class="ajuda-campo" style="margin:0">{{ total_mes }} linhas no total</div>
+    {% set sucesso = composicao.get("sucesso", 0) %}
+    {% set erro = composicao.get("erro", 0) %}
+    {% set pendente = composicao.get("pendente", 0) %}
+    {% set soma = (sucesso + erro + pendente) or 1 %}
+    <div class="composition-bar">
+      <div class="composition-seg" style="width:{{ sucesso / soma * 100 }}%;background:var(--status-good)"></div>
+      <div class="composition-seg" style="width:{{ erro / soma * 100 }}%;background:var(--status-critical)"></div>
+      <div class="composition-seg" style="width:{{ pendente / soma * 100 }}%;background:var(--status-info)"></div>
+    </div>
+    <div class="legend-list">
+      <div class="legend-row"><span class="legend-dot" style="background:var(--status-good)"></span> Sucesso <span class="legend-val tabular">{{ sucesso }}</span></div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--status-critical)"></span> Erro <span class="legend-val tabular">{{ erro }}</span></div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--status-info)"></span> Na fila <span class="legend-val tabular">{{ pendente }}</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-pad" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
+    <div style="font-size:13.5px;font-weight:700">Últimas linhas processadas</div>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('resultados.index') }}">Ver todos os resultados &rarr;</a>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Identificador</th><th>Cadastro</th><th>Status</th><th>Duração</th><th>Quando</th></tr></thead>
+      <tbody>
+        {% for c in ultimas %}
+        <tr>
+          <td>{{ c.identificador_registro or "-" }}</td>
+          <td class="cell-muted">{{ c.tipo_cadastro }}</td>
+          <td>
+            {% if c.status == "sucesso" %}<span class="badge badge-good">Sucesso</span>
+            {% elif c.status == "erro" %}<span class="badge badge-critical">Erro</span>
+            {% else %}<span class="badge badge-info">Na fila</span>{% endif %}
+          </td>
+          <td class="cell-mono">{{ (c.duracao_ms ~ "ms") if c.duracao_ms else "-" }}</td>
+          <td class="cell-mono">{{ c.criado_em.strftime("%d/%m %H:%M") }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="cell-muted" style="text-align:center;padding:30px">Nenhuma linha processada ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

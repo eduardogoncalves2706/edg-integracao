@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titulo %}Histórico de envios{% endblock %}
+{% block topo_titulo %}Histórico de envios{% endblock %}
+{% block topo_crumb %}Todas as planilhas enviadas{% endblock %}
+{% block conteudo %}
+<div class="view-header">
+  <div>
+    <div class="view-title">Histórico de envios</div>
+    <div class="view-subtitle">Cada linha é uma planilha enviada, com o resumo do processamento.</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Lote</th>
+          <th>Arquivo</th>
+          <th>Cadastro</th>
+          <th>Enviado por</th>
+          <th>Quando</th>
+          <th>Status</th>
+          <th>Linhas</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lote in lotes %}
+        <tr>
+          <td class="tabular">#{{ lote.id }}</td>
+          <td>{{ lote.nome_arquivo }}</td>
+          <td class="cell-muted">{{ lote.tipo_cadastro }}</td>
+          <td class="cell-muted">{{ lote.usuario.nome if lote.usuario else "-" }}</td>
+          <td class="cell-mono">{{ lote.criado_em.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>
+            {% if lote.status == "concluido" %}
+              <span class="badge badge-good">Concluído</span>
+            {% else %}
+              <span class="badge badge-info"><span class="spinner"></span>Processando</span>
+            {% endif %}
+          </td>
+          <td class="cell-mono">
+            {{ lote.total_linhas }} total ·
+            <span style="color:var(--status-good)">{{ lote.linhas_sucesso }} ok</span> ·
+            <span style="color:var(--status-critical)">{{ lote.linhas_erro }} erro</span>
+          </td>
+          <td><a class="btn btn-secondary btn-sm" href="{{ url_for('lotes.detalhe', lote_id=lote.id) }}">Ver</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">
+          <div class="state-block">
+            <div class="state-title">Nenhum envio ainda</div>
+            <div class="state-desc">Envie sua primeira planilha para ver o histórico aqui.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if paginacao.pages > 1 %}
+  <div class="pager">
+    <span>Página {{ paginacao.page }} de {{ paginacao.pages }}</span>
+    {% if paginacao.has_prev %}<a href="?pagina={{ paginacao.prev_num }}">&larr; Anterior</a>{% endif %}
+    {% if paginacao.has_next %}<a href="?pagina={{ paginacao.next_num }}">Próxima &rarr;</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

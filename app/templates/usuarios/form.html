@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block titulo %}{{ "Editar usuário" if usuario else "Novo usuário" }}{% endblock %}
+{% block topo_titulo %}{{ "Editar usuário" if usuario else "Novo usuário" }}{% endblock %}
+{% block topo_crumb %}Usuários{% endblock %}
+{% block conteudo %}
+<a class="voltar" href="{{ url_for('usuarios.index') }}">&larr; Usuários</a>
+
+<div class="card card-pad" style="max-width:520px">
+  <form method="post">
+    {% if not usuario %}
+    <div class="campo">
+      <label for="login">Usuário (login)</label>
+      <input type="text" id="login" name="login" value="{{ form.login if form else '' }}" required>
+    </div>
+    {% endif %}
+
+    <div class="campo">
+      <label for="nome">Nome</label>
+      <input type="text" id="nome" name="nome" value="{{ usuario.nome if usuario else (form.nome if form else '') }}" required>
+    </div>
+
+    <div class="campo">
+      <label for="senha">{{ "Nova senha (deixe em branco pra manter)" if usuario else "Senha" }}</label>
+      <input type="password" id="senha" name="senha" {{ "required" if not usuario }}>
+    </div>
+
+    {% if current_user.admin %}
+    <div class="campo-check">
+      <input type="checkbox" id="admin" name="admin" {{ "checked" if (usuario.admin if usuario else False) }} {{ "disabled" if usuario and usuario.id == current_user.id }}>
+      <label for="admin" style="font-weight:500">Administrador (gerencia outros usuários)</label>
+    </div>
+    {% if usuario %}
+    <div class="campo-check">
+      <input type="checkbox" id="ativo" name="ativo" {{ "checked" if usuario.ativo }} {{ "disabled" if usuario.id == current_user.id }}>
+      <label for="ativo" style="font-weight:500">Ativo (desmarque para bloquear o acesso)</label>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <button class="btn btn-primary" type="submit">Salvar</button>
+  </form>
+</div>
+
+{% if usuario %}
+<div class="card card-pad" style="max-width:520px;margin-top:14px">
+  <div style="font-size:13.5px;font-weight:700;margin-bottom:4px">Acesso à AWS</div>
+  <p class="ajuda-campo" style="margin-top:0">
+    O app na AWS só aceita conexões de IPs liberados no security group.
+    Registre seu IP aqui para liberar o acesso automaticamente.
+  </p>
+
+  {% if usuario.ip_registrado %}
+    <p class="cell-mono" style="margin:8px 0">
+      IP atual liberado: {{ usuario.ip_registrado }}
+      {% if usuario.ip_liberado_em %}<span class="cell-muted">(em {{ usuario.ip_liberado_em.strftime("%d/%m/%Y %H:%M") }})</span>{% endif %}
+    </p>
+  {% endif %}
+
+  {% if usuario.id == current_user.id %}
+  <form method="post" action="{{ url_for('usuarios.liberar_ip_route', usuario_id=usuario.id) }}" style="margin-bottom:10px">
+    <input type="hidden" name="usar_ip_atual" value="1">
+    <button class="btn btn-primary btn-sm" type="submit">Detectar e liberar meu IP atual</button>
+  </form>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('usuarios.liberar_ip_route', usuario_id=usuario.id) }}" class="form-upload">
+    <input type="text" name="ip" placeholder="Ou informe um IP manualmente" value="{{ usuario.ip_registrado or '' }}">
+    <button class="btn btn-secondary btn-sm" type="submit">Liberar este IP</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

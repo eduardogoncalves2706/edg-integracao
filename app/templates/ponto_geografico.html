@@ -1,35 +1,43 @@
 {% extends "base.html" %}
 {% block titulo %}Ponto Geográfico{% endblock %}
+{% block topo_titulo %}Ponto Geográfico{% endblock %}
+{% block topo_crumb %}Enviar planilha / Ponto Geográfico{% endblock %}
 {% block conteudo %}
 <a class="voltar" href="{{ url_for('dashboard.selecionar_cadastro') }}">&larr; Voltar</a>
-<h1>Cadastro de Ponto Geográfico</h1>
 
-<ol class="passos">
-  <li>
-    <strong>Baixe o modelo de planilha.</strong>
-    <p><a class="botao" href="{{ url_for('ponto_geografico.baixar_modelo') }}">Baixar modelo (.xlsx)</a></p>
-  </li>
-  <li>
-    <strong>Preencha uma linha por ponto geográfico</strong>, seguindo os exemplos e a aba
-    "Instrucoes" da planilha. Campos marcados com * são obrigatórios.
-    <p class="ajuda-campo">
-      Também aceita direto a planilha oficial de coleta da Apisul (RQ IMP
-      002, aba "Pontos") sem precisar copiar pro modelo acima.
-    </p>
-  </li>
-  <li>
-    <strong>Informe o token de integração e envie o arquivo preenchido:</strong>
-    <form method="post" action="{{ url_for('ponto_geografico.enviar') }}" enctype="multipart/form-data" class="form-upload">
-      <input type="text" name="token" placeholder="Token de integração" inputmode="numeric" required>
-      <input type="file" name="planilha" accept=".xlsx" required>
-      <button type="submit">Enviar e cadastrar</button>
-    </form>
-    <p class="ajuda-campo">
-      O token é gerado pela Apisul via <code>POST /v1/Auth/Token</code>
-      (Usuario/Senha) — cole aqui o valor retornado. Ele é usado só nesta
-      chamada, não fica salvo no app. <strong>Parece expirar rápido</strong> —
-      se der erro "Token inválido", gere um token novo e envie de novo.
-    </p>
-  </li>
-</ol>
+<div class="card card-pad">
+  <ol class="passos">
+    <li>
+      <strong>Baixe o modelo de planilha.</strong>
+      <p><a class="btn btn-secondary btn-sm" href="{{ url_for('ponto_geografico.baixar_modelo') }}">Baixar modelo (.xlsx)</a></p>
+    </li>
+    <li>
+      <strong>Preencha uma linha por ponto geográfico</strong>, seguindo os exemplos e a aba
+      "Instrucoes" da planilha. Campos marcados com * são obrigatórios.
+      <p class="ajuda-campo">
+        Também aceita direto a planilha oficial de coleta da Apisul (RQ IMP
+        002, aba "Pontos") sem precisar copiar pro modelo acima.
+      </p>
+    </li>
+    <li>
+      <strong>Informe o token de integração e envie o arquivo preenchido:</strong>
+      <form method="post" action="{{ url_for('ponto_geografico.enviar') }}" enctype="multipart/form-data" class="form-upload">
+        <input type="text" name="token" placeholder="Token de integração" inputmode="numeric" required>
+        <input type="file" name="planilha" accept=".xlsx" required>
+        <button class="btn btn-primary" type="submit">Enviar e cadastrar</button>
+      </form>
+      <p class="ajuda-campo">
+        O token é gerado pela Apisul via <code>POST /v1/Auth/Token</code>
+        (Usuario/Senha) — cole aqui o valor retornado. Ele é usado só nesta
+        chamada, não fica salvo no app. <strong>Parece expirar rápido</strong> —
+        se der erro "Token inválido", gere um token novo e envie de novo.
+      </p>
+      <p class="ajuda-campo">
+        O envio é assíncrono: você será levado direto para o acompanhamento
+        do lote, que atualiza sozinho enquanto cada linha é processada
+        (cada chamada real leva de 20 a 40 segundos).
+      </p>
+    </li>
+  </ol>
+</div>
 {% endblock %}

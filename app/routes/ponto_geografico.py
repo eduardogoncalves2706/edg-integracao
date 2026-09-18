@@ -2,9 +2,9 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import ChamadaApi, LoteImportacao
+from app.models import STATUS_ERRO, STATUS_PENDENTE, ChamadaApi, LoteImportacao
 from app.services import excel_ponto_geografico as excel_service
-from app.services.ponto_geografico_service import inserir_ponto_geografico
+from app.services.processamento_lote import iniciar_processamento_async
 from app.utils import json_safe
 
 bp = Blueprint("ponto_geografico", __name__, url_prefix="/cadastros/ponto-geografico")
@@ -69,8 +69,6 @@ def enviar():
     db.session.add(lote)
     db.session.flush()  # garante lote.id antes de vincular as chamadas
 
-    resultados_para_tela = []
-
     for linha in linhas:
         if not linha.valida:
             lote.linhas_erro += 1
@@ -81,49 +79,31 @@ def enviar():
                 operacao="ValidacaoPlanilha",
                 linha_excel=linha.numero_linha,
                 identificador_registro=linha.dados.get("Identificador"),
+                status=STATUS_ERRO,
                 payload_enviado=json_safe(linha.dados),
-                resposta_recebida=None,
-                sucesso=False,
                 mensagem_erro="; ".join(linha.erros),
             )
-            db.session.add(chamada)
-            resultados_para_tela.append({
-                "linha": linha.numero_linha,
-                "identificador": linha.dados.get("Identificador") or "-",
-                "sucesso": False,
-                "mensagem": "; ".join(linha.erros),
-            })
-            continue
-
-        payload = excel_service.montar_payload_soap(linha.dados)
-        resultado = inserir_ponto_geografico(cfg, token, payload)
-
-        if resultado.sucesso:
-            lote.linhas_sucesso += 1
         else:
-            lote.linhas_erro += 1
-
-        chamada = ChamadaApi(
-            usuario_id=current_user.id,
-            lote_id=lote.id,
-            tipo_cadastro=TIPO_CADASTRO,
-            operacao="InserePontoGeografico",
-            linha_excel=linha.numero_linha,
-            identificador_registro=linha.dados.get("Identificador"),
-            payload_enviado=json_safe(resultado.payload_enviado),
-            resposta_recebida=json_safe(resultado.resposta),
-            sucesso=resultado.sucesso,
-            mensagem_erro=resultado.mensagem_erro,
-            duracao_ms=resultado.duracao_ms,
-        )
+            payload = excel_service.montar_payload_soap(linha.dados)
+            chamada = ChamadaApi(
+                usuario_id=current_user.id,
+                lote_id=lote.id,
+                tipo_cadastro=TIPO_CADASTRO,
+                operacao="InserePontoGeografico",
+                linha_excel=linha.numero_linha,
+                identificador_registro=linha.dados.get("Identificador"),
+                status=STATUS_PENDENTE,
+                payload_enviado=json_safe(payload),
+            )
         db.session.add(chamada)
-        resultados_para_tela.append({
-            "linha": linha.numero_linha,
-            "identificador": linha.dados.get("Identificador") or "-",
-            "sucesso": resultado.sucesso,
-            "mensagem": resultado.mensagem_erro or "Cadastrado com sucesso.",
-        })
 
     db.session.commit()
 
-    return render_template("resultado.html", lote=lote, resultados=resultados_para_tela)
+    # Se todas as linhas já falharam na validação, não há nada pra processar.
+    if lote.linhas_erro < lote.total_linhas:
+        iniciar_processamento_async(current_app._get_current_object(), lote.id, cfg, token)
+    else:
+        lote.status = "concluido"
+        db.session.commit()
+
+    return redirect(url_for("lotes.detalhe", lote_id=lote.id))

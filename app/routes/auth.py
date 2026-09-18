@@ -12,7 +12,7 @@ bp = Blueprint("auth", __name__)
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("dashboard.selecionar_cadastro"))
+        return redirect(url_for("dashboard.visao_geral"))
 
     if request.method == "POST":
         login_informado = request.form.get("login", "").strip()
@@ -23,7 +23,7 @@ def login():
             usuario.ultimo_login_em = datetime.now(timezone.utc)
             db.session.commit()
             login_user(usuario)
-            return redirect(url_for("dashboard.selecionar_cadastro"))
+            return redirect(url_for("dashboard.visao_geral"))
 
         flash("Usuário ou senha inválidos.", "danger")
 
