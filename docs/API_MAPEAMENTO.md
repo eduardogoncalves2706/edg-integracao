@@ -97,8 +97,8 @@ Não usadas no fluxo de cadastro em lote (v1), ficam disponíveis em
 
 ## Planilha oficial de coleta (RQ IMP 002, aba "Pontos")
 
-O projeto tem, na própria pasta (`1.1. Planilha de coleta de dados - RQ IMP
-002...xlsx`), o formulário padrão que a Apisul já usa para coletar pontos
+Em `docs/1.1. Planilha de coleta de dados - RQ IMP 002...xlsx` está o
+formulário padrão que a Apisul já usa para coletar pontos
 geográficos dos clientes. É uma fonte melhor que o WSDL pra decidir o que
 realmente é obrigatório no dia a dia — o modelo de Excel do app
 (`app/services/excel_ponto_geografico.py`) foi realinhado com ela:
