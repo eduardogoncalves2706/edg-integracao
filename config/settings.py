@@ -56,6 +56,18 @@ class DbConfig:
 
     @classmethod
     def load(cls) -> "DbConfig":
+        # Em contêiner (ECS) a config vem só de variáveis de ambiente — não
+        # há config/db_config.json dentro da imagem. Localmente, sem DB_HOST
+        # setado, cai no arquivo JSON de sempre.
+        if os.environ.get("DB_HOST"):
+            return cls(
+                host=os.environ["DB_HOST"],
+                port=int(os.environ.get("DB_PORT", 5432)),
+                dbname=os.environ.get("DB_NAME", "postgres"),
+                user=os.environ.get("DB_USER", "postgres"),
+                password=os.environ.get("DB_PASSWORD"),
+                sslmode=os.environ.get("DB_SSLMODE"),
+            )
         cfg = _load_json("db_config.json", "db_config.template.json")
         return cls(
             host=cfg["host"],
@@ -95,6 +107,20 @@ class ApisulConfig:
 
     @classmethod
     def load(cls) -> "ApisulConfig":
+        if os.environ.get("APISUL_BASE_URL"):
+            return cls(
+                ambiente=os.environ.get("APISUL_AMBIENTE", "homologacao"),
+                base_url=os.environ["APISUL_BASE_URL"].rstrip("/"),
+                auth_token_path=os.environ.get("APISUL_AUTH_TOKEN_PATH", "/v1/Auth/Token"),
+                usuario=os.environ.get("APISUL_USUARIO"),
+                senha=os.environ.get("APISUL_SENHA"),
+                token_ttl_minutos=int(os.environ.get("APISUL_TOKEN_TTL_MINUTOS", 15)),
+                servicos_soap={
+                    "ponto_geografico": os.environ.get(
+                        "APISUL_SVC_PONTO_GEOGRAFICO", "/ApisulLog.Integracao.PontoGeografico.svc"
+                    ),
+                },
+            )
         cfg = _load_json("apisul_config.json", "apisul_config.template.json")
         return cls(
             ambiente=cfg.get("ambiente", "homologacao"),
