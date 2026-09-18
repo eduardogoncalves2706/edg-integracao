@@ -95,6 +95,98 @@ Busca por `Apelido`, `CNPJ`, `Identificador` ou `IdentificadorCliente`.
 Não usadas no fluxo de cadastro em lote (v1), ficam disponíveis em
 `services/soap_client.py` para uma futura tela de consulta.
 
+## Planilha oficial de coleta (RQ IMP 002, aba "Pontos")
+
+O projeto tem, na própria pasta (`1.1. Planilha de coleta de dados - RQ IMP
+002...xlsx`), o formulário padrão que a Apisul já usa para coletar pontos
+geográficos dos clientes. É uma fonte melhor que o WSDL pra decidir o que
+realmente é obrigatório no dia a dia — o modelo de Excel do app
+(`app/services/excel_ponto_geografico.py`) foi realinhado com ela:
+
+- **Colunas e ordem** iguais à aba "Pontos": Identificador (Nome do ponto),
+  Tipo de Ponto, Rua/Avenida/Estrada, Número, Bairro, Cep, Cidade, UF, País,
+  CNPJ, Telefone, Latitude, Longitude. Campos extras que só a API aceita
+  (IdentificadorCliente, Raio, JanelaInicial/Final etc.) viraram um bloco
+  "[Avançado]" opcional no fim da planilha, fora do formulário padrão.
+- **Regra de obrigatoriedade condicional**, copiada literalmente da
+  instrução da planilha: *"Caso colunas Latitude e Longitude não forem
+  preenchidas, os campos Endereço, Número, Cep e Bairro serão de
+  preenchimento obrigatório."* Implementada em
+  `_validar_regra_endereco_ou_coordenada`.
+- **"Tipo de Ponto" é uma lista suspensa** (data validation da própria
+  planilha) com os valores: `CD, Filial, Matriz, Fábrica, CDD, Ponto de
+  entrega, Planta, Checkpoint, Cross Docking`. O modelo gerado pelo app
+  reproduz esse dropdown.
+
+### Código numérico de IdTipoPonto (confirmado)
+
+Tabela oficial De→Para confirmada em 2026-09-18 (`TIPOS_PONTO` em
+`excel_ponto_geografico.py`):
+
+| Rótulo           | IdTipoPonto |
+|-------------------|:-----------:|
+| Permitido         | 1 |
+| Proibido          | 2 |
+| CD                | 3 |
+| Filial            | 4 |
+| Matriz            | 5 |
+| Fábrica           | 6 |
+| Pátio             | 7 |
+| Oficina           | 8 |
+| Expedição         | 9 |
+| CDD               | 10 |
+| Ponto de Entrega  | 11 |
+| Área              | 12 |
+
+Os rótulos "Planta", "Checkpoint" e "Cross Docking" que apareciam no
+dropdown da planilha RQ IMP 002 não têm equivalente nessa tabela — foram
+removidos do dropdown do modelo de Excel até a Apisul esclarecer o
+equivalente correto.
+
+## Ambientes
+
+| Ambiente | Base URL |
+|----------|----------|
+| Homologação | `https://hml-api-novoapisullog.apisul.com.br` |
+| Produção | `https://api-novoapisullog.apisul.com.br` (mesma estrutura, sem o prefixo `hml-`) |
+
+## Primeiro cadastro real (2026-09-18) — funcionou
+
+Testado `InserePontoGeografico` em **produção**, com token de uma conta de
+teste (`379981910`), só endereço (sem Lat/Long), `IdTipoPonto=3` (CD):
+
+```json
+{"Identificador": "TESTE-CLAUDE-001", "Apelido": "TESTE-CLAUDE-001",
+ "Endereco": "Rua Pereira Franco", "Numero": "347", "Bairro": "Sao Joao",
+ "Cidade": "Porto Alegre", "UF": "RS", "Pais": "Brasil", "CEP": "90240520",
+ "IdTipoPonto": 3, "IdPontoGeografico": 0}
+```
+
+`TransacaoOk: true`. Retornou `IdPontoGeografico = 10220474` — **esse ponto
+ficou de verdade cadastrado na conta**, é o "TESTE-CLAUDE-001" que aparece
+no painel da Apisul; apagar/renomear lá se não for pra manter.
+
+Descobertas importantes desse teste:
+- **A API geocodifica sozinha** o endereço informado (sem precisar mandar
+  Lat/Long): devolveu `Coordenadas` como um polígono de 5 pontos (a área do
+  endereço), `CodigoIBGECidade`, `Estado` por extenso e
+  `TipoGeorreferenciamento: "Endereço"` preenchidos automaticamente.
+- **Raio tem default de 500m** quando não informado — vem como aviso, não
+  erro: `MensagensAviso: [{"Codigo": 5022, "Mensagem": "Como o Raio não foi
+  informado, será considerado o valor padrão de 500 m"}]`.
+- **Chamada é lenta**: ~37s de ponta a ponta (client SOAP + geocodificação
+  do lado da Apisul). Para lotes grandes de planilha, isso significa que um
+  upload de N linhas leva N × ~30-40s de forma síncrona — vale considerar
+  processamento assíncrono/fila se os lotes crescerem além de umas poucas
+  dezenas de linhas.
+- Confirma que os nomes de campo do payload (`Endereco`, `Numero`, `Bairro`,
+  `Cidade`, `UF`, `Pais`, `CEP`, `Identificador`, `Apelido`, `IdTipoPonto`,
+  `IdPontoGeografico`) e o código `IdTipoPonto=3` (CD) estão corretos.
+
+Pendência: confirmar com a Apisul se essa conta de teste tem algum
+isolamento (sandbox dentro de produção) ou se os pontos cadastrados entram
+nos dados reais/operacionais da empresa.
+
 ## Arquivo bruto
 - `PontoGeografico.wsdl` — WSDL completo baixado (`?singleWsdl`)
 - `swagger_v2_apisullog.json` — spec REST completo (`swagger/docs/v2`)
