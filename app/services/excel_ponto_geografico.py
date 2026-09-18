@@ -322,10 +322,19 @@ def _ler_aba_coleta_oficial(aba) -> list[LinhaValidada]:
     return linhas
 
 
+def _somente_digitos(valor: Any) -> Any:
+    if not isinstance(valor, str):
+        return valor
+    digitos = "".join(c for c in valor if c.isdigit())
+    return digitos or None
+
+
 def montar_payload_soap(dados: dict[str, Any]) -> dict[str, Any]:
     """Converte uma linha validada no formato esperado por
     PontoGeograficoModeloIntegracao (monta Coordenadas a partir de Lat/Long,
-    converte o rótulo de Tipo de Ponto para o código numérico IdTipoPonto)."""
+    converte o rótulo de Tipo de Ponto para o código numérico IdTipoPonto,
+    tira pontuação de CNPJ/CPF e CEP — a API rejeita com erro 1065 se vier
+    formatado, ex.: "38.345.653/0001-85" ou "90240-520")."""
     latitude = dados.get("Latitude")
     longitude = dados.get("Longitude")
     coordenadas = None
@@ -339,7 +348,7 @@ def montar_payload_soap(dados: dict[str, Any]) -> dict[str, Any]:
         "Identificador": dados.get("Identificador"),
         "IdentificadorCliente": dados.get("IdentificadorCliente"),
         "Apelido": dados.get("Identificador"),
-        "CNPJ": dados.get("CNPJ"),
+        "CNPJ": _somente_digitos(dados.get("CNPJ")),
         "Endereco": dados.get("Endereco"),
         "Numero": dados.get("Numero"),
         "Bairro": dados.get("Bairro"),
@@ -347,7 +356,7 @@ def montar_payload_soap(dados: dict[str, Any]) -> dict[str, Any]:
         "CodigoIBGECidade": dados.get("CodigoIBGECidade"),
         "UF": dados.get("UF"),
         "Pais": dados.get("Pais") or "Brasil",
-        "CEP": dados.get("CEP"),
+        "CEP": _somente_digitos(dados.get("CEP")),
         "Telefone": dados.get("Telefone"),
         "Coordenadas": coordenadas,
         "Raio": dados.get("Raio"),
