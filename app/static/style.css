@@ -358,6 +358,26 @@ label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
 
 .voltar { display: inline-block; margin-bottom: 12px; font-size: 12.5px; }
 .ajuda-campo { color: var(--text-muted); font-size: 12px; max-width: 480px; margin-top: 8px; }
-.passos { padding-left: 1.1rem; }
-.passos li { margin-bottom: 1.2rem; font-size: 13.5px; }
-.form-upload { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+.form-upload { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* ---- fluxo de upload em passos ---- */
+.upload-steps { display: flex; flex-direction: column; gap: 20px; }
+.upload-step { display: flex; gap: 14px; align-items: flex-start; }
+.upload-step-num {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--brand-50); color: var(--brand-600);
+  display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.upload-step-body { flex: 1; min-width: 0; }
+.upload-step-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+
+/* ---- disclosure de observações secundárias ---- */
+.detalhes-secundarios { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border); }
+.detalhes-secundarios summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); list-style: none;
+}
+.detalhes-secundarios summary::-webkit-details-marker { display: none; }
+.detalhes-secundarios summary::before { content: "▸ "; color: var(--text-muted); }
+.detalhes-secundarios[open] summary::before { content: "▾ "; }
+.detalhes-secundarios ul { margin: 10px 0 0; padding-left: 18px; color: var(--text-muted); font-size: 12.5px; }
+.detalhes-secundarios li { margin-bottom: 6px; }
