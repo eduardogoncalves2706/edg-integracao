@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import boto3
 from botocore.exceptions import ClientError
 
-PORTA_APP = 8000
+PORTA_APP = 80
 DESCRICAO_PREFIXO = "auto-liberado-por-app:"
 
 

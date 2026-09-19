@@ -16,7 +16,7 @@
       "image": "255530396736.dkr.ecr.us-east-1.amazonaws.com/edg-integracao-api:latest",
       "essential": true,
       "portMappings": [
-        {"containerPort": 8000, "hostPort": 8000, "protocol": "tcp"}
+        {"containerPort": 80, "hostPort": 80, "protocol": "tcp"}
       ],
       "environment": [
         {"name": "DB_HOST", "value": "__DB_HOST__"},
