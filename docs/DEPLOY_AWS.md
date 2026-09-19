@@ -111,3 +111,29 @@ Ver logs em CloudWatch, log group `/ecs/edg-integracao-api` (um stream por task)
   tudo). Aceitável em fase de teste; configurar migrations de verdade antes
   de ter dados reais que importem.
 - **Sem CI/CD**: build/push/deploy é manual, do Mac de quem está mexendo.
+
+## CloudFront + certificado (HTTPS)
+
+Adicionado em 2026-09-19 pra resolver o aviso de "não seguro" (login/senha
+trafegando em HTTP puro). Sem ALB (custo), usamos CloudFront como front TLS:
+
+| Recurso | Valor |
+|---|---|
+| Certificado ACM | `arn:aws:acm:us-east-1:255530396736:certificate/0c8dd1d8-fecc-4309-8253-05d1db4e187d` (us-east-1, validado por DNS) |
+| Distribuição CloudFront | `EQW0UB12TQTRX` — `d5ypltdmwtvtk.cloudfront.net` |
+| Origem da distribuição | `origin-integrador.edgsolutions.com.br` (A record, **atualizar a cada redeploy** — CloudFront não aceita IP direto como origem, exige um nome) |
+| DNS público | `integrador.edgsolutions.com.br` CNAME → `d5ypltdmwtvtk.cloudfront.net` (fixo, não muda) |
+
+Registro.br não tem API pública — todos os registros DNS (origem, validação
+do certificado, CNAME final) foram adicionados manualmente pelo usuário no
+"Editar Zona" (modo avançado, powered by DNSSHIM) do painel. **O único que
+precisa ser atualizado a cada deploy é o `origin-integrador` (tipo A)** —
+avisar o usuário do IP novo pra ele trocar no painel.
+
+Fluxo depois de cada deploy:
+1. Pegar o IP novo da task (comando na seção acima).
+2. Avisar o usuário pra atualizar `origin-integrador.edgsolutions.com.br`
+   (A) pro IP novo no painel do registro.br.
+3. CloudFront resolve `origin-integrador` de novo automaticamente (sem TTL
+   de cache do lado da CloudFront pra esse tipo de resolução — ela consulta
+   DNS a cada nova conexão de origem, não fixa o IP).
