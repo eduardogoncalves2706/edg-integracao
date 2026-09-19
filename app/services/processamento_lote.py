@@ -48,7 +48,9 @@ def _carregar_executores():
     if _EXECUTORES:
         return
     from app.services.ponto_geografico_service import inserir_ponto_geografico
+    from app.services.motorista_service import inserir_motorista
     _EXECUTORES["ponto_geografico"] = inserir_ponto_geografico
+    _EXECUTORES["motorista"] = inserir_motorista
 
 
 def iniciar_processamento_async(app: Flask, lote_id: int, cfg: ApisulConfig, token: int) -> None:

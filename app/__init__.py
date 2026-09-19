@@ -22,6 +22,7 @@ def create_app() -> Flask:
     from app.routes.dashboard import bp as dashboard_bp
     from app.routes.historico import bp as historico_bp
     from app.routes.lotes import bp as lotes_bp
+    from app.routes.motorista import bp as motorista_bp
     from app.routes.ponto_geografico import bp as ponto_geografico_bp
     from app.routes.resultados import bp as resultados_bp
     from app.routes.usuarios import bp as usuarios_bp
@@ -30,6 +31,7 @@ def create_app() -> Flask:
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(historico_bp)
     app.register_blueprint(lotes_bp)
+    app.register_blueprint(motorista_bp)
     app.register_blueprint(ponto_geografico_bp)
     app.register_blueprint(resultados_bp)
     app.register_blueprint(usuarios_bp)

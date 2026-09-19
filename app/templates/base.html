@@ -22,7 +22,7 @@
     <div class="nav-group-label">Principal</div>
     <ul class="nav-list">
       <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'dashboard.visao_geral' }}" href="{{ url_for('dashboard.visao_geral') }}">Visão geral</a></li>
-      <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'dashboard.selecionar_cadastro' or (request.endpoint and request.endpoint.startswith('ponto_geografico.')) }}" href="{{ url_for('dashboard.selecionar_cadastro') }}">Enviar planilha</a></li>
+      <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'dashboard.selecionar_cadastro' or (request.endpoint and (request.endpoint.startswith('ponto_geografico.') or request.endpoint.startswith('motorista.'))) }}" href="{{ url_for('dashboard.selecionar_cadastro') }}">Enviar planilha</a></li>
       <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('resultados.') }}" href="{{ url_for('resultados.index') }}">Resultados</a></li>
       <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('historico.') }}" href="{{ url_for('historico.index') }}">Histórico de envios</a></li>
     </ul>

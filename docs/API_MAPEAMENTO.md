@@ -16,8 +16,8 @@ Os cadastros de integração (`ApisulLog.Integracao.*`) são serviços **SOAP
 
 | Serviço              | URL                                                              | Status |
 |----------------------|-------------------------------------------------------------------|--------|
-| PontoGeografico       | `/ApisulLog.Integracao.PontoGeografico.svc`                       | 200 (implementado) |
-| Motorista             | `/ApisulLog.Integracao.Motorista.svc`                             | 200 (existe — próximo cadastro) |
+| PontoGeografico       | `/ApisulLog.Integracao.PontoGeografico.svc`                       | 200 (implementado, cadastro via SOAP) |
+| Motorista             | `/ApisulLog.Integracao.Motorista.svc`                             | 200 (existe, mas só tem `BuscaPontuacao` — ver abaixo) |
 | Rota                  | `/ApisulLog.Integracao.Rota.svc`                                  | 200 (existe) |
 | Emitente              | `/ApisulLog.Integracao.Emitente.svc`                              | 200 (existe) |
 | SMP                   | `/ApisulLog.Integracao.SMP.svc`                                   | 200 (existe) |
@@ -25,9 +25,16 @@ Os cadastros de integração (`ApisulLog.Integracao.*`) são serviços **SOAP
 
 Cada `.svc?singleWsdl` traz o contrato completo (operações, tipos, campos
 obrigatórios). O app foi desenhado para ler esse WSDL e gerar o
-Excel/validação automaticamente a partir dele (ver `app/services/soap_client.py`),
-então adicionar Motorista/Rota/Emitente/SMP depois é replicar o padrão do
-PontoGeografico, não reinventar.
+Excel/validação automaticamente a partir dele (ver `app/services/soap_client.py`).
+
+**Correção importante (2026-09-18):** nem todo cadastro é SOAP. O
+`.svc` de Motorista só expõe `BuscaPontuacao` — o **cadastro** de motorista
+(`InsereMotorista`) é uma rota **REST** do mesmo Swagger que documenta o
+token (`POST /insereMotorista`, tag `Motorista`, operação
+`Motorista_PostAsync`). Ou seja: antes de implementar um cadastro novo,
+**checar os dois lugares** (o `.svc?singleWsdl` E o swagger REST) em vez de
+assumir que segue o padrão SOAP do PontoGeografico. Ver `app/services/rest_client.py`
+pro cliente REST genérico, usado pelo Motorista.
 
 ## Autenticação (gera o `token` usado nas chamadas SOAP)
 
@@ -209,6 +216,69 @@ fallback de fato quando Lat/Long ficam em branco.
    ignorada (é só numeração sequencial). Testado com o arquivo real do
    projeto: reconheceu as 3 linhas preenchidas (Matriz, Filial SPO, Filial
    BLM), ignorou a linha "Exemplo" e todas as linhas vazias até a 507.
+
+---
+
+# Cadastro de Motorista (REST)
+
+`POST {base_url}/insereMotorista`, tag `Motorista` / operação
+`Motorista_PostAsync` no swagger. Diferente do PontoGeografico:
+
+- **Token vai no header** (`token: <valor>`), não no corpo da mensagem.
+- Corpo é JSON puro (`MotoristaModeloIntegracao`), não SOAP/XML.
+- Resposta (`BaseRetornoRestModelo`) **não tem `TransacaoOk`** — sucesso se
+  inferece pela ausência de `MensagensErro` (ou presença de
+  `MensagensSucesso`). HTTP 400 devolve direto um array de
+  `RetornoMensagem`, fora do envelope padrão.
+
+## Campos (`MotoristaModeloIntegracao`)
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| NomeCompleto | string | |
+| Documento | string | CPF/DNI/RUT/CI conforme `TipoDocumento` |
+| TipoDocumento | int | domínio abaixo |
+| TipoMotorista | int | domínio abaixo |
+| DDD | string | separado do número — a planilha de coleta traz telefone junto, o app extrai o DDD |
+| NumeroTelefonePrincipal | string | sem DDD |
+| TipoTelefone | int | enum `[1,2,3,4,5,6,7]` no swagger — **pendente**, só vimos "Celular" nos dados reais e não temos a tabela De→Para. Assumindo Celular = 1 até confirmar |
+| Ativo | bool | |
+| UF | string | |
+| Cidade | string | |
+| PlacaVeiculoPadrao | string | opcional |
+| CPFGestorFrota | string | opcional |
+| LocalizadorApisulMob | string | opcional |
+| Contatos | array de `{DDD, Telefone, TipoTelefone, Nome, Observacao}` | opcional, fora do modelo básico do Excel |
+| DataAdmissao | datetime | opcional |
+| CodContratante | string | opcional |
+| CodFuncionario | string | opcional |
+
+### Domínios confirmados pela Apisul (2026-09-18)
+
+**IdTipoMotorista**: 1-Autônomo, 2-Agregado, 3-Frota
+(planilha de coleta usa só "Frota" nos exemplos, mas dropdown real da
+aba "Relação de motoristas" tem as 3 opções).
+
+**IdTipoDocumento**: 1-CPF, 2-DNI, 3-RUT, 4-CI (documento de identidade
+por país — DNI=Argentina, RUT=Chile, CI=Bolívia/Paraguai/Uruguai). Modelo
+básico do Excel assume CPF (Brasil); os outros ficam disponíveis pra quem
+cadastrar motorista de outro país.
+
+**IdGeoPais** (referência geral de país, não é campo direto do Motorista,
+mas é o mesmo domínio usado em outros cadastros): 1-Argentina, 2-Bolívia,
+3-Brasil, 4-Chile, 9-Paraguai, 11-Uruguai, 12-Venezuela. Note os números
+não são sequenciais (5-8 e 10 não informados) — não inferir os que faltam.
+
+**Pendência**: código de `TipoTelefone` não confirmado.
+
+## Planilha oficial de coleta (aba "Relação de motoristas")
+
+Mesmo arquivo do PontoGeografico. Cabeçalho na linha 6, dados da linha 7,
+coluna A é número sequencial: `Nome, CPF, Tipo Motorista, Cidade, Estado,
+País, Tipo Telefone, Número Telefone`. Dropdown de "Tipo Motorista" em
+`$K$10:$K$12` = Frota/Autonomo/Agregado. Só uma coluna de telefone
+(combina DDD+número, ex. "63 8114-5893") — o app separa DDD dos primeiros
+dígitos.
 
 ## Arquivo bruto
 - `PontoGeografico.wsdl` — WSDL completo baixado (`?singleWsdl`)

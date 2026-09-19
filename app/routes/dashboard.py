@@ -22,9 +22,9 @@ CADASTROS = [
     {
         "chave": "motorista",
         "titulo": "Motorista",
-        "descricao": "Cadastro de motoristas.",
-        "disponivel": False,
-        "url_endpoint": None,
+        "descricao": "Cadastro de motoristas (frota, agregado ou autônomo).",
+        "disponivel": True,
+        "url_endpoint": "motorista.index",
     },
     {
         "chave": "rota",

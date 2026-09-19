@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titulo %}Motorista{% endblock %}
+{% block topo_titulo %}Motorista{% endblock %}
+{% block topo_crumb %}Enviar planilha / Motorista{% endblock %}
+{% block conteudo %}
+<a class="voltar" href="{{ url_for('dashboard.selecionar_cadastro') }}">&larr; Voltar</a>
+
+<div class="card card-pad">
+  <div class="upload-steps">
+    <div class="upload-step">
+      <div class="upload-step-num">1</div>
+      <div class="upload-step-body">
+        <div class="upload-step-title">Baixe o modelo</div>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('motorista.baixar_modelo') }}">Baixar modelo (.xlsx)</a>
+      </div>
+    </div>
+
+    <div class="upload-step">
+      <div class="upload-step-num">2</div>
+      <div class="upload-step-body">
+        <div class="upload-step-title">Preencha e envie</div>
+        <div class="ajuda-campo" style="margin:0 0 10px">Uma linha por motorista. Campos com * são obrigatórios.</div>
+        <form method="post" action="{{ url_for('motorista.enviar') }}" enctype="multipart/form-data" class="form-upload">
+          <input type="text" name="token" placeholder="Token de integração" inputmode="numeric" required>
+          <input type="file" name="planilha" accept=".xlsx" required>
+          <button class="btn btn-primary" type="submit">Enviar e cadastrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <details class="detalhes-secundarios">
+    <summary>Dicas e observações</summary>
+    <ul>
+      <li>Também aceita direto a planilha oficial de coleta da Apisul (RQ IMP 002, aba "Relação de motoristas").</li>
+      <li>O código de "Tipo Telefone" ainda não foi confirmado pela Apisul — hoje só "Celular" está mapeado.</li>
+      <li>O token expira rápido — se der "Token inválido", gere um novo e envie de novo.</li>
+      <li>O envio é assíncrono: a próxima tela acompanha o progresso sozinha.</li>
+    </ul>
+  </details>
+</div>
+{% endblock %}
