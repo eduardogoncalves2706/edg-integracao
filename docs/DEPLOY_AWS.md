@@ -14,12 +14,12 @@ definition (com `__DB_HOST__` como placeholder).
 | ECS Cluster | `edg-integracao-cluster` | Fargate |
 | ECS Service | `edg-integracao-api-service` | 1 task, `assignPublicIp=ENABLED` (sem ALB — IP público muda a cada redeploy) |
 | ECS Task Definition | `edg-integracao-api` | Ver `deploy/task-definition.template.json` |
-| Security Group (app) | `edg-integracao-api-sg` | Porta 80/tcp, libera IP por IP (self-service via tela de Usuários, ou manual) |
-| Route 53 Hosted Zone | `integrador.edgsolutions.com.br` (Z0720256KO9TOIXOZS3A) | Subdomínio delegado do domínio `edgsolutions.com.br` (registrado no registro.br) — só esse subdomínio, não mexe no resto do domínio. Registro A aponta pro IP público atual da task, TTL 60s |
+| Security Group (app) | `edg-integracao-api-sg` | Porta 80/tcp, libera IP por IP (self-service via tela de Usuários, ou manual) + o prefix list gerenciado `com.amazonaws.global.cloudfront.origin-facing` (pra CloudFront alcançar a origem) |
 | Security Group (db) | `edg-integracao-db-sg` | Porta 5432/tcp, libera o SG da app + IPs de admin pra rodar `flask` CLI direto |
 | Secrets Manager | `edg-integracao/app` | JSON com `DB_PASSWORD` e `FLASK_SECRET_KEY` |
 | IAM Role (execução) | `ecsTaskExecutionRole` | Compartilhada com outro projeto da conta (authcnpj) — só pull de ECR + logs. Tem uma policy inline extra (`edg-integracao-secrets-read`) pra ler o secret acima |
 | IAM Role (task) | `edg-integracao-task-role` | Só desta app. Policy `liberar-ip-proprio-sg`: `ec2:AuthorizeSecurityGroupIngress`/`RevokeSecurityGroupIngress` restrita ao ARN do `edg-integracao-api-sg` — é o que permite a tela de Usuários liberar IP sozinha, sem dar acesso amplo à conta |
+| CloudFront + ACM | ver seção "CloudFront + certificado (HTTPS)" abaixo | Front TLS na frente do app, DNS gerenciado direto no registro.br (não usa Route 53) |
 
 ## Fluxo de deploy (manual, sem CI/CD ainda)
 
@@ -57,34 +57,6 @@ aws ec2 describe-network-interfaces --region us-east-1 --network-interface-ids "
   --query "NetworkInterfaces[0].Association.PublicIp" --output text
 ```
 
-## DNS — atualizar depois de cada deploy
-
-Sem ALB/NLB, `integrador.edgsolutions.com.br` é um registro A "manual":
-depois de qualquer redeploy, atualizar pro IP novo (TTL 60s, propaga rápido):
-
-```bash
-IP_NOVO="<pegue com o comando acima>"
-cat > /tmp/route53-change.json <<EOF
-{
-  "Changes": [{
-    "Action": "UPSERT",
-    "ResourceRecordSet": {
-      "Name": "integrador.edgsolutions.com.br",
-      "Type": "A",
-      "TTL": 60,
-      "ResourceRecords": [{"Value": "$IP_NOVO"}]
-    }
-  }]
-}
-EOF
-aws route53 change-resource-record-sets --hosted-zone-id Z0720256KO9TOIXOZS3A \
-  --change-batch file:///tmp/route53-change.json
-```
-
-Limitação conhecida: se a task cair sozinha (crash) fora de um deploy
-planejado, o DNS fica apontando pro IP antigo até alguém notar e rodar isso
-de novo — não é failover automático (isso só existe com ALB/NLB).
-
 ## Rodar comandos `flask` (init-db, criar-usuario) contra o RDS
 
 O RDS não é publicamente acessível — rodar como task avulsa dentro da VPC:
@@ -101,12 +73,11 @@ Ver logs em CloudWatch, log group `/ecs/edg-integracao-api` (um stream por task)
 ## Pendências / próximos passos de infra
 
 - **Sem ALB**: decidido propositalmente por custo (fase de teste, poucos
-  usuários). Domínio próprio (`integrador.edgsolutions.com.br`, subdomínio
-  delegado do `edgsolutions.com.br` no registro.br) resolve o "endereço
-  fixo" por ~$0,50/mês (hosted zone) em vez de ~US$16-20/mês do ALB — o
-  preço é precisar atualizar o registro A manualmente a cada deploy (ver
-  seção "DNS" acima). Reavaliar ALB/NLB quando for pra uso real com mais
-  gente, principalmente pelo failover automático em caso de crash.
+  usuários). CloudFront + domínio próprio (ver seção abaixo) resolve TLS e
+  endereço fixo por centavos/mês em vez de ~US$16-20/mês do ALB — o preço é
+  precisar atualizar manualmente o registro `origin-integrador` (A) a cada
+  deploy, e não ter failover automático se a task cair sozinha fora de um
+  deploy planejado. Reavaliar ALB/NLB quando for pra uso real com mais gente.
 - **Sem Alembic**: mudanças de schema hoje exigem `flask reset-db` (dropa
   tudo). Aceitável em fase de teste; configurar migrations de verdade antes
   de ter dados reais que importem.
